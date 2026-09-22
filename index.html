@@ -10,8 +10,8 @@
 <select id="viewedFilter"><option value="">Viewed + unviewed</option><option value="viewed">Viewed only</option><option value="unviewed">Not viewed</option></select>
 <button id="reset" type="button">Reset filters</button>
 </div>
-<div class="stats" id="stats"></div>
 </div>
+<div class="stats" id="stats"></div><p id="filterSummary" role="status" aria-live="polite"></p>
 </header>
 <div class="backup-bar"><button id="signIn">Sign in with Google</button><button id="signOut" hidden>Sign out</button><span id="account">Use the same Google account on every device.</span></div><div class="backup-bar"><label>Import private board <input type="file" id="importFile" accept=".json,application/json"></label><button id="exportData">Export private backup</button><button id="retrySync">Retry sync</button><p id="saveStatus" role="status" aria-live="polite">Sign in to load your private board.</p></div>
 <p class="privacy">Sign in with the same Google account on your phone and computer. Your jobs, notes, log and reminders sync to your private Firebase board. The app code is public; your board requires your sign-in. Use a trusted device, and keep exported backups private.</p>

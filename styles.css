@@ -10,7 +10,7 @@ h1{margin:0;font-size:20px;line-height:1.15} .sub{color:var(--muted);margin-top:
 input,select,button{background:#211a2f;color:var(--text);border:1px solid var(--line);border-radius:9px;padding:8px 9px;font-size:13px} button{cursor:pointer}
 .toolbar input{min-width:180px;flex:1 1 220px} .toolbar select{flex:1 1 140px} .toolbar button{flex:0 0 auto}
 .stat{background:#20182c;border:1px solid var(--line);border-radius:12px;padding:8px 12px;font-size:13px;color:var(--muted)}.stat b{color:var(--text);font-size:16px;margin-right:5px}
-.board{display:grid;grid-template-columns:repeat(6,minmax(260px,1fr));gap:10px;padding:12px;overflow-x:auto;align-items:start;scroll-snap-type:x proximity}
+.board{display:grid;grid-template-columns:repeat(7,minmax(260px,1fr));gap:10px;padding:12px;overflow-x:auto;align-items:start;scroll-snap-type:x proximity}
 .column{background:rgba(27,23,38,.85);border:1px solid var(--line);border-radius:14px;min-height:68vh;padding:9px;scroll-snap-align:start}.column.over{outline:2px dashed var(--purple);outline-offset:3px}
 .column-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}.column-head h2{font-size:15px;margin:0}.count{background:#2b223a;color:var(--muted);border-radius:999px;padding:3px 8px;font-size:12px}
 .card{background:linear-gradient(180deg,#251d34,#1d1728);border:1px solid #403553;border-radius:12px;padding:10px;margin:8px 0;box-shadow:0 6px 18px rgba(0,0,0,.16);cursor:grab}.card.dragging{opacity:.45}
@@ -31,7 +31,7 @@ input,select,button{background:#211a2f;color:var(--text);border:1px solid var(--
 .error{display:none;margin:12px;padding:10px;border:1px solid #804052;border-radius:10px;background:#3b1f28;color:#ffd1da}
 @media(max-width:900px){
  header{padding:10px} h1{font-size:18px} .sub{font-size:11px}
- .board{grid-template-columns:repeat(6,86vw);gap:8px;padding:8px 8px 12px} .column{padding:8px;border-radius:12px;min-height:72vh}
+ .board{grid-template-columns:repeat(7,86vw);gap:8px;padding:8px 8px 12px} .column{padding:8px;border-radius:12px;min-height:72vh}
  .toolbar{display:grid;grid-template-columns:1fr 1fr;gap:7px} .toolbar input{grid-column:1/-1;min-width:0;width:100%} .toolbar select,.toolbar button{width:100%;min-width:0}
  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:6px} .stat{padding:6px 7px;font-size:10px;text-align:center} .stat b{display:block;font-size:14px;margin:0 0 1px}
 }
@@ -41,3 +41,5 @@ button,.joblink,.viewed-toggle{min-height:44px} input[type=checkbox]{width:22px;
 @media(max-width:900px){input,select,textarea,.notes-area{font-size:16px}.card-actions button{font-size:14px}header{position:relative}}
 
 .section-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px;max-width:1180px;margin:auto;padding:12px}.section-grid .card{cursor:auto}.section-grid p{line-height:1.5}.sub{max-width:70ch}.backup-bar label{display:flex;gap:10px;align-items:center;flex-wrap:wrap}#importFile{max-width:100%}.card-actions select{max-width:100%}.notes-area{font-size:16px} .empty{padding:16px;margin:12px;border:1px dashed var(--line);border-radius:12px} .privacy{color:var(--muted);font-size:13px;line-height:1.5;padding:0 12px} .section-grid h2{font-size:14px;color:var(--gold)} .card select{max-width:100%}
+
+input[type=checkbox]{flex:0 0 22px;min-width:22px;max-width:22px;min-height:22px;max-height:22px;padding:0;margin:0;box-sizing:border-box}.admin-task{padding:4px 0}.stat[aria-pressed=true]{border-color:var(--gold);background:#352a19;color:var(--text)}.stat:hover{border-color:var(--gold)}#filterSummary{font-size:12px;color:var(--muted);margin:8px 0 0}

@@ -1,6 +1,8 @@
 'use strict';
-const columns=['New','Reviewing','Ready to Apply','Applied','Interview','Hold'];
+const columns=['New','Reviewing','Ready to Apply','Applied','Interview','Hold','Not interested'];
 let state={version:2,jobs:[],sections:[],adminTasks:[]};
+let summaryFilter='tracked';
+const summaryMatches=(j,key)=>key==='high priority'?j.priority==='High':key==='strong fit'?j.fit==='Strong':key==='applied'?j.status==='Applied':key==='interviews'?j.status==='Interview':key==='viewed'?j.viewed:key==='not interested'?j.status==='Not interested':true;
 const $=id=>document.getElementById(id);
 const report=text=>{$('saveStatus').textContent=text;};
 const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
@@ -71,11 +73,11 @@ function renderSections(){
 }
 function render(){
  $('empty').hidden=state.jobs.length>0;
- document.querySelector('.sub').textContent=state.jobs.length?`${state.jobs.length} tracked roles · saved in this browser`:'Sign in to load your private board on any device.';
+ document.querySelector('.sub').textContent=state.jobs.length?`${state.jobs.length} tracked roles · private cloud board`:'Sign in to load your private board on any device.';
  renderSections();
  const q=$('search').value.toLowerCase(),lane=$('lane').value,fit=$('fit').value,pri=$('priority').value,viewed=$('viewedFilter').value;
  const laneSelect=$('lane');laneSelect.replaceChildren(new Option('All lanes',''));[...new Set(state.jobs.map(j=>j.lane).filter(Boolean))].sort().forEach(s=>laneSelect.add(new Option(s,s)));laneSelect.value=lane;
- const filtered=state.jobs.filter(j=>(!q||`${j.company} ${j.role} ${j.lane} ${j.note} ${j.userNotes}`.toLowerCase().includes(q))&&(!lane||j.lane===lane)&&(!fit||j.fit===fit)&&(!pri||j.priority===pri)&&(!viewed||(viewed==='viewed'?j.viewed:!j.viewed)));
+ const filtered=state.jobs.filter(j=>summaryMatches(j,summaryFilter)&&(!q||`${j.company} ${j.role} ${j.lane} ${j.note} ${j.userNotes}`.toLowerCase().includes(q))&&(!lane||j.lane===lane)&&(!fit||j.fit===fit)&&(!pri||j.priority===pri)&&(!viewed||(viewed==='viewed'?j.viewed:!j.viewed)));
  const board=$('board');board.replaceChildren();
  columns.forEach(col=>{
   const date=j=>{const n=Date.parse(j.postingDate||j.dateAdded||'');return Number.isFinite(n)?n:0;};
@@ -93,7 +95,15 @@ function render(){
   });
   section.addEventListener('dragover',e=>{e.preventDefault();section.classList.add('over');});section.addEventListener('dragleave',()=>section.classList.remove('over'));section.addEventListener('drop',e=>{e.preventDefault();section.classList.remove('over');const dragged=board.querySelector('.dragging');if(!dragged)return;state.jobs[Number(dragged.dataset.idx)].status=col;save();render();});board.append(section);
  });
- $('stats').innerHTML=[['tracked',state.jobs.length],['high priority',state.jobs.filter(j=>j.priority==='High').length],['strong fit',state.jobs.filter(j=>j.fit==='Strong').length],['applied',state.jobs.filter(j=>j.status==='Applied').length],['interviews',state.jobs.filter(j=>j.status==='Interview').length],['viewed',state.jobs.filter(j=>j.viewed).length]].map(([label,n])=>`<div class="stat"><b>${n}</b>${label}</div>`).join('');
+ const summaries=['tracked','high priority','strong fit','applied','interviews','viewed','not interested'];
+ $('stats').innerHTML=summaries.map(label=>`<button type="button" class="stat" data-summary="${label}" aria-pressed="${summaryFilter===label}"><b>${state.jobs.filter(j=>summaryMatches(j,label)).length}</b>${label}</button>`).join('');
+ $('stats').querySelectorAll('button').forEach(button=>button.addEventListener('click',()=>{
+  summaryFilter=summaryFilter===button.dataset.summary?'tracked':button.dataset.summary;
+  ['search','lane','fit','priority','viewedFilter'].forEach(id=>$(id).value='');
+  render();
+ }));
+ $('filterSummary').textContent=`Showing ${filtered.length} of ${state.jobs.length} jobs${summaryFilter==='tracked'?'':' · '+summaryFilter}`;
+
  if(!window.boardUI?.editable){document.querySelectorAll('#board input,#board select,#board textarea,#dailyExecution input,#importFile').forEach(el=>el.disabled=true);document.querySelectorAll('#board article').forEach(el=>el.draggable=false);}
 }
 $('importFile').addEventListener('change',async e=>{
@@ -108,7 +118,7 @@ $('importFile').addEventListener('change',async e=>{
 });
 $('exportData').addEventListener('click',exportBackup);
 ['search','lane','fit','priority','viewedFilter'].forEach(id=>$(id).addEventListener('input',render));
-$('reset').addEventListener('click',()=>{['search','lane','fit','priority','viewedFilter'].forEach(id=>$(id).value='');render();});
+$('reset').addEventListener('click',()=>{summaryFilter='tracked';['search','lane','fit','priority','viewedFilter'].forEach(id=>$(id).value='');render();});
 $('filterToggle').addEventListener('click',()=>{const open=$('controlsWrap').classList.toggle('open');$('filterToggle').setAttribute('aria-expanded',String(open));$('filterToggle').textContent=open?'Filters ▴':'Filters ▾';});
 window.boardUI={
  editable:false,
