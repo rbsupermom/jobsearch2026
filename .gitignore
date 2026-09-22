@@ -1,0 +1,4 @@
+*.json
+*private*
+*backup*
+.env*
