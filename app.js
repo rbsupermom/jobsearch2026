@@ -68,7 +68,7 @@ function renderSections(){
    }
   }else{
    if(!state.adminTasks.length){const p=document.createElement('p');p.textContent='No private reminders imported.';card.append(p);}
-   state.adminTasks.forEach(task=>{const label=document.createElement('label');label.className='admin-task';const input=document.createElement('input');input.type='checkbox';input.checked=task.done;input.dataset.admin=task.id;input.addEventListener('change',()=>{task.done=input.checked;state.admin??={};state.admin[task.id]=input.checked;save();});label.append(input,document.createTextNode(task.text));card.append(label);});
+   state.adminTasks.forEach(task=>{const label=document.createElement('label');label.className='admin-task';const input=document.createElement('input');input.type='checkbox';input.checked=task.done;input.dataset.admin=task.id;input.addEventListener('change',async()=>{const done=input.checked;task.done=done;state.admin??={};state.admin[task.id]=done;input.disabled=true;const saved=await window.cloudBoard?.setAdmin(task.id,done);if(saved)state=saved;render();});label.append(input,document.createTextNode(task.text));card.append(label);});
   }wrap.append(card);
  });
 }
