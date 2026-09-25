@@ -27,7 +27,8 @@ function validate(value){
  if(!admin||typeof admin!=='object'||Array.isArray(admin)||Object.values(admin).some(v=>typeof v!=='boolean'))throw Error('Invalid ADMIN completion values.');
  const workLog=value.workLog??[];
  if(!Array.isArray(workLog)||workLog.length>3000||workLog.some(e=>!e||typeof e.id!=='string'||typeof e.date!=='string'||typeof e.text!=='string')||new Set(workLog.map(e=>e.id)).size!==workLog.length)throw Error('Invalid work-search log.');
- return {version:2,jobs,sections,adminTasks,admin,workLog};
+ const normalizedAdmin={...admin};for(const task of adminTasks)normalizedAdmin[task.id]=task.done;
+ return {version:2,jobs,sections,adminTasks,admin:normalizedAdmin,workLog};
 }
 function save(){
  if(window.cloudBoard)return window.cloudBoard.queue(state);
