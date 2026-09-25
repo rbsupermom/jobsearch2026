@@ -2,7 +2,7 @@ import {initializeApp} from 'https://www.gstatic.com/firebasejs/12.19.0/firebase
 import {getAuth,GoogleAuthProvider,signInWithPopup,onAuthStateChanged,signOut} from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js';
 import {getFirestore,doc,onSnapshot,runTransaction,serverTimestamp} from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js';
 import {firebaseConfig} from './firebase-config.js';
-import {mergeBoards,emptyBoard,BoardConflict} from './sync-core.mjs?v=20260925-4';
+import {mergeBoards,emptyBoard,BoardConflict} from './sync-core.mjs?v=20260925-5';
 const app=initializeApp(firebaseConfig),auth=getAuth(app),db=getFirestore(app);
 const $=id=>document.getElementById(id),clone=x=>JSON.parse(JSON.stringify(x));
 const say=text=>{$('saveStatus').textContent=text;};
@@ -67,6 +67,32 @@ window.cloudBoard={
  queue(board){
   if(!ready){say('Sign in and wait for your cloud board before editing.');return false;}
   desired=clone(board);dirty=true;cache();say(navigator.onLine?'Saved on this device; syncing shortly…':'Offline — saved on this device, waiting to sync.');schedule();return false;
+ },
+ async setAdmin(id,done){
+  if(!ready||!ref){say('Cloud board is not ready yet.');return null;}
+  if(!navigator.onLine){say('ADMIN update needs an internet connection.');return null;}
+  if(busy){say('Please wait for the current sync to finish, then try the ADMIN checkbox again.');return null;}
+  busy=true;say('Saving ADMIN update…');
+  try{
+   const result=await runTransaction(db,async tx=>{
+    const snapshot=await tx.get(ref);
+    const remote=read(snapshot);
+    const task=(remote.adminTasks||[]).find(t=>t.id===id);
+    if(!task)throw Error('ADMIN reminder was not found in the cloud board.');
+    task.done=done;
+    remote.admin??={};remote.admin[id]=done;
+    const payload=JSON.stringify(remote);
+    if(new TextEncoder().encode(payload).length>700000)throw Error('Board is too large to sync.');
+    const revision=(snapshot.exists()?snapshot.data().revision:0)+1;
+    tx.set(ref,{payload,revision,updatedAt:serverTimestamp()});
+    return {board:remote,revision};
+   });
+   base=clone(result.board);desired=clone(result.board);dirty=false;committedRevision=result.revision;latestRemote={board:clone(result.board),revision:result.revision};cache();apply(desired);say('Synced across your devices.');return clone(result.board);
+  }catch(error){
+   say('ADMIN update was not saved — '+(error.message||'connection failed')+'.');
+   if(latestRemote?.board){base=clone(latestRemote.board);desired=clone(latestRemote.board);dirty=false;cache();apply(desired);}
+   return null;
+  }finally{busy=false;}
  },
  isReady:()=>ready
 };
