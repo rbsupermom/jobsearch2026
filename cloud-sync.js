@@ -2,7 +2,7 @@ import {initializeApp} from 'https://www.gstatic.com/firebasejs/12.19.0/firebase
 import {getAuth,GoogleAuthProvider,signInWithPopup,onAuthStateChanged,signOut} from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js';
 import {getFirestore,doc,onSnapshot,runTransaction,serverTimestamp} from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js';
 import {firebaseConfig} from './firebase-config.js';
-import {mergeBoards,emptyBoard,BoardConflict} from './sync-core.mjs?v=20260925-3';
+import {mergeBoards,emptyBoard,BoardConflict} from './sync-core.mjs?v=20260925-4';
 const app=initializeApp(firebaseConfig),auth=getAuth(app),db=getFirestore(app);
 const $=id=>document.getElementById(id),clone=x=>JSON.parse(JSON.stringify(x));
 const say=text=>{$('saveStatus').textContent=text;};
@@ -36,6 +36,15 @@ async function flush(){
   const result=await runTransaction(db,async tx=>{
    const snapshot=await tx.get(target);const remote=read(snapshot);remoteSeen=remote;
    const merged=mergeBoards(start,sent,remote).board;
+   const startTasks=new Map((start.adminTasks||[]).map(t=>[t.id,t]));
+   for(const task of sent.adminTasks||[]){
+    const before=startTasks.get(task.id);
+    if(before&&before.done!==task.done){
+     const targetTask=(merged.adminTasks||[]).find(t=>t.id===task.id);
+     if(targetTask)targetTask.done=task.done;
+     merged.admin??={};merged.admin[task.id]=task.done;
+    }
+   }
    const payload=JSON.stringify(merged);if(new TextEncoder().encode(payload).length>700000)throw Error('Board is too large to sync. Export a backup and reduce its size.');
    const revision=(snapshot.exists()?snapshot.data().revision:0)+1;
    tx.set(target,{payload,revision,updatedAt:serverTimestamp()});return {board:merged,revision};
