@@ -67,7 +67,7 @@ function renderSections(){
    }
   }else{
    if(!state.adminTasks.length){const p=document.createElement('p');p.textContent='No private reminders imported.';card.append(p);}
-   state.adminTasks.forEach(task=>{const label=document.createElement('label');label.className='admin-task';const input=document.createElement('input');input.type='checkbox';input.checked=task.done;input.dataset.admin=task.id;input.addEventListener('change',()=>{task.done=input.checked;save();});label.append(input,document.createTextNode(task.text));card.append(label);});
+   state.adminTasks.forEach(task=>{const label=document.createElement('label');label.className='admin-task';const input=document.createElement('input');input.type='checkbox';input.checked=task.done;input.dataset.admin=task.id;input.addEventListener('change',()=>{task.done=input.checked;state.admin??={};state.admin[task.id]=input.checked;save();});label.append(input,document.createTextNode(task.text));card.append(label);});
   }wrap.append(card);
  });
 }
@@ -115,6 +115,17 @@ $('importFile').addEventListener('change',async e=>{
   const result=merge(incoming);const saved=save();render();
   if(saved)report(`Imported ${result.added} roles; preserved ${result.kept} existing roles, including notes and statuses. Saved in this browser.`);
  }catch(error){report(error.message||'Import failed. Nothing changed.');}finally{e.target.value='';}
+});
+$('restoreFile').addEventListener('change',async e=>{
+ const file=e.target.files[0];if(!file)return;
+ try{
+  if(!window.cloudBoard?.isReady())throw Error('Sign in and wait for your cloud board before restoring.');
+  if(file.size>10*1024*1024)throw Error('Backup is too large (maximum 10 MB).');
+  const incoming=validate(JSON.parse(await file.text()));
+  const ok=confirm('Restore this private backup? This replaces the current private board data with the selected backup, including jobs, notes, statuses, work log and ADMIN reminders.');
+  if(!ok)return;
+  state=incoming;save();render();
+ }catch(error){report(error.message||'Restore failed. Nothing changed.');}finally{e.target.value='';}
 });
 $('exportData').addEventListener('click',exportBackup);
 ['search','lane','fit','priority','viewedFilter'].forEach(id=>$(id).addEventListener('input',render));
