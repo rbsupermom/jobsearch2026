@@ -15,7 +15,7 @@ function cache(){
  catch{say('Device backup could not be saved. Keep this page open until synced, or export a private backup.');}
 }
 function gate(enabled){
- document.querySelectorAll('#board input,#board select,#board textarea,#dailyExecution input,#importFile').forEach(el=>el.disabled=!enabled);
+ document.querySelectorAll('#board input,#board select,#board textarea,#dailyExecution input,#importFile,#restoreFile').forEach(el=>el.disabled=!enabled);
  window.boardUI.editable=enabled;
  document.querySelectorAll('#board article').forEach(el=>el.draggable=enabled);
 }
