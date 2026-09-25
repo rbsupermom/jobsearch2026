@@ -104,7 +104,7 @@ function render(){
  }));
  $('filterSummary').textContent=`Showing ${filtered.length} of ${state.jobs.length} jobs${summaryFilter==='tracked'?'':' · '+summaryFilter}`;
 
- if(!window.boardUI?.editable){document.querySelectorAll('#board input,#board select,#board textarea,#dailyExecution input,#importFile').forEach(el=>el.disabled=true);document.querySelectorAll('#board article').forEach(el=>el.draggable=false);}
+ if(!window.boardUI?.editable){document.querySelectorAll('#board input,#board select,#board textarea,#dailyExecution input,#importFile,#restoreFile').forEach(el=>el.disabled=true);document.querySelectorAll('#board article').forEach(el=>el.draggable=false);}
 }
 $('importFile').addEventListener('change',async e=>{
  const file=e.target.files[0];if(!file)return;
