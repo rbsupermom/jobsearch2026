@@ -122,7 +122,8 @@ $('restoreFile').addEventListener('change',async e=>{
   if(!window.cloudBoard?.isReady())throw Error('Sign in and wait for your cloud board before restoring.');
   if(file.size>10*1024*1024)throw Error('Backup is too large (maximum 10 MB).');
   const incoming=validate(JSON.parse(await file.text()));
-  const ok=confirm('Restore this private backup? This replaces the current private board data with the selected backup, including jobs, notes, statuses, work log and ADMIN reminders.');
+  if(!incoming.jobs.length)throw Error('Restore requires a full board backup containing jobs. Use Add / merge for a partial patch.');
+  const ok=confirm('Restore this FULL private backup? This replaces the current private board data with the selected backup, including jobs, notes, statuses, work log and ADMIN reminders.');
   if(!ok)return;
   state=incoming;save();render();
  }catch(error){report(error.message||'Restore failed. Nothing changed.');}finally{e.target.value='';}
