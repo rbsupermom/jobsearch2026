@@ -2,7 +2,7 @@ import {initializeApp} from 'https://www.gstatic.com/firebasejs/12.19.0/firebase
 import {getAuth,GoogleAuthProvider,signInWithPopup,onAuthStateChanged,signOut} from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js';
 import {getFirestore,doc,onSnapshot,runTransaction,serverTimestamp} from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js';
 import {firebaseConfig} from './firebase-config.js';
-import {mergeBoards,emptyBoard,BoardConflict} from './sync-core.mjs';
+import {mergeBoards,emptyBoard,BoardConflict} from './sync-core.mjs?v=20260925-3';
 const app=initializeApp(firebaseConfig),auth=getAuth(app),db=getFirestore(app);
 const $=id=>document.getElementById(id),clone=x=>JSON.parse(JSON.stringify(x));
 const say=text=>{$('saveStatus').textContent=text;};
