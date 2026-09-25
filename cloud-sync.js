@@ -2,7 +2,7 @@ import {initializeApp} from 'https://www.gstatic.com/firebasejs/12.19.0/firebase
 import {getAuth,GoogleAuthProvider,signInWithPopup,onAuthStateChanged,signOut} from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js';
 import {getFirestore,doc,onSnapshot,runTransaction,serverTimestamp} from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js';
 import {firebaseConfig} from './firebase-config.js';
-import {mergeBoards,emptyBoard,BoardConflict} from './sync-core.mjs';
+import {mergeBoards,emptyBoard,BoardConflict} from './sync-core.mjs?v=20260925-3';
 const app=initializeApp(firebaseConfig),auth=getAuth(app),db=getFirestore(app);
 const $=id=>document.getElementById(id),clone=x=>JSON.parse(JSON.stringify(x));
 const say=text=>{$('saveStatus').textContent=text;};
@@ -15,7 +15,7 @@ function cache(){
  catch{say('Device backup could not be saved. Keep this page open until synced, or export a private backup.');}
 }
 function gate(enabled){
- document.querySelectorAll('#board input,#board select,#board textarea,#dailyExecution input,#importFile').forEach(el=>el.disabled=!enabled);
+ document.querySelectorAll('#board input,#board select,#board textarea,#dailyExecution input,#importFile,#restoreFile').forEach(el=>el.disabled=!enabled);
  window.boardUI.editable=enabled;
  document.querySelectorAll('#board article').forEach(el=>el.draggable=enabled);
 }
