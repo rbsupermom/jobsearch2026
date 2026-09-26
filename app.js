@@ -88,6 +88,13 @@ function render(){
   matches.forEach(j=>{
    const card=document.createElement('article');card.className='card'+(j.viewed?' viewed':'');card.draggable=true;card.dataset.idx=state.jobs.indexOf(j);
    card.innerHTML=`<h3>${esc(j.role)}</h3><div class="company">${esc(j.company)}</div><div class="badges"><span class="badge ${esc(String(j.priority).toLowerCase())}">${esc(j.priority)} priority</span><span class="badge ${esc(String(j.fit).toLowerCase())}">${esc(j.fit)} fit</span><span class="badge">${esc(j.lane)}</span></div><div class="meta">${esc(j.location)}<br>${esc(j.salary)}</div><div class="note">${esc(j.note)}</div><div class="gap"><b>Learn / gap:</b> ${esc(j.gap)}</div><a class="joblink" href="${esc(safeURL(j.url))}" target="_blank" rel="noopener noreferrer">${esc(j.linkLabel||'View job')}</a><div class="viewed-row"><label class="viewed-toggle"><input type="checkbox" ${j.viewed?'checked':''}> Viewed</label><span class="viewed-date">${esc(j.viewedAt)}</span></div><label>Status <select aria-label="Status for ${esc(j.company)} ${esc(j.role)}">${columns.map(s=>`<option ${s===j.status?'selected':''}>${s}</option>`).join('')}</select></label><div class="card-actions"><button type="button">Notes${j.userNotes?' •':''}</button></div><div class="notes-wrap"><textarea class="notes-area" aria-label="Notes for ${esc(j.company)} ${esc(j.role)}" placeholder="Add your notes about this role…">${esc(j.userNotes)}</textarea><div class="notes-status">See the sync message above for cloud save confirmation.</div></div>`;
+   if(j.postingState){
+    const verification=document.createElement('p');verification.className='note';
+    const label={active:'Posting verified active',closed:'Posting confirmed closed',unverified:'Posting needs verification'}[j.postingState]||'Posting verification';
+    verification.textContent=label+(j.verifiedAt?' · '+j.verifiedAt:'')+(j.postingEvidence?' — '+j.postingEvidence:'');
+    if(j.evidenceUrl){const evidence=document.createElement('a');evidence.href=safeURL(j.evidenceUrl);evidence.textContent=' Source';evidence.target='_blank';evidence.rel='noopener noreferrer';verification.append(evidence);}
+    card.querySelector('.joblink').before(verification);
+   }
    card.querySelector('input').addEventListener('change',e=>{j.viewed=e.target.checked;j.viewedAt=j.viewed?new Date().toLocaleDateString():'';save();render();});
    card.querySelector('select').addEventListener('change',e=>{j.status=e.target.value;save();render();});
    card.querySelector('button').addEventListener('click',()=>card.querySelector('.notes-wrap').classList.toggle('open'));

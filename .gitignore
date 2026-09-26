@@ -2,3 +2,10 @@
 *private*
 *backup*
 .env*
+node_modules/
+.vercel/
+*service-account*.json
+*serviceAccount*.json
+!bridge/package.json
+!bridge/package-lock.json
+!bridge/vercel.json
