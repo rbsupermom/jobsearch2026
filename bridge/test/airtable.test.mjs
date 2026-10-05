@@ -17,7 +17,7 @@ test('Airtable reader fetches only TEST-001 with server-side bearer auth',async(
   let request;
   const fetchImpl=async(url,options)=>{
     request={url,options};
-    return {ok:true,json:async()=>({records:[airtableRecord]})};
+    return {ok:true,status:200,json:async()=>({records:[airtableRecord]})};
   };
   const reader=createAirtableReader({fetchImpl,pat:'pat-secret',baseId:'appBase',tableId:'tblJobs'});
   assert.deepEqual(await reader.fetchTest001(),payload);
@@ -27,11 +27,24 @@ test('Airtable reader fetches only TEST-001 with server-side bearer auth',async(
   assert.equal(request.options.headers.Authorization,'Bearer pat-secret');
 });
 
-test('Airtable reader fails closed for missing config, failed HTTP, or ambiguous lookup',async()=>{
-  await assert.rejects(()=>createAirtableReader({fetchImpl:async()=>({ok:true,json:async()=>({records:[airtableRecord]})})}).fetchTest001(),/AIRTABLE_PAT/);
-  await assert.rejects(()=>createAirtableReader({fetchImpl:async()=>({ok:false}),pat:'p',baseId:'a',tableId:'t'}).fetchTest001(),/read failed/);
-  await assert.rejects(()=>createAirtableReader({fetchImpl:async()=>({ok:true,json:async()=>({records:[]})}),pat:'p',baseId:'a',tableId:'t'}).fetchTest001(),/exactly one record/);
-  await assert.rejects(()=>createAirtableReader({fetchImpl:async()=>({ok:true,json:async()=>({records:[airtableRecord,airtableRecord]})}),pat:'p',baseId:'a',tableId:'t'}).fetchTest001(),/exactly one record/);
+test('Airtable reader reports safe HTTP diagnostics without exposing secrets',async()=>{
+  const failure=async status=>createAirtableReader({
+    fetchImpl:async()=>({ok:false,status}),pat:'pat-secret',baseId:'appBase',tableId:'tblJobs'
+  }).fetchTest001();
+  await assert.rejects(()=>failure(401),/authentication rejected/);
+  await assert.rejects(()=>failure(403),/rejected access/);
+  await assert.rejects(()=>failure(404),/could not find/);
+  await assert.rejects(()=>failure(422),/rejected the TEST-001 query/);
+  await assert.rejects(()=>failure(429),/rate-limited/);
+  await assert.rejects(()=>failure(500),/status 500/);
+  try{await failure(401);}catch(e){assert.doesNotMatch(e.message,/pat-secret|appBase|tblJobs/);}
+});
+
+test('Airtable reader fails closed for missing config, transport errors, or ambiguous lookup',async()=>{
+  await assert.rejects(()=>createAirtableReader({fetchImpl:async()=>({ok:true,status:200,json:async()=>({records:[airtableRecord]})})}).fetchTest001(),/AIRTABLE_PAT/);
+  await assert.rejects(()=>createAirtableReader({fetchImpl:async()=>{throw Error('network');},pat:'p',baseId:'a',tableId:'t'}).fetchTest001(),/could not reach/);
+  await assert.rejects(()=>createAirtableReader({fetchImpl:async()=>({ok:true,status:200,json:async()=>({records:[]})}),pat:'p',baseId:'a',tableId:'t'}).fetchTest001(),/no records/);
+  await assert.rejects(()=>createAirtableReader({fetchImpl:async()=>({ok:true,status:200,json:async()=>({records:[airtableRecord,airtableRecord]})}),pat:'p',baseId:'a',tableId:'t'}).fetchTest001(),/more than one record/);
 });
 
 test('Airtable test write stays outside the canonical board document',async()=>{
