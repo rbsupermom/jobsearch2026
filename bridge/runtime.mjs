@@ -3,7 +3,7 @@ import {getFirestore,FieldValue} from 'firebase-admin/firestore';
 import {configFromEnv,createOAuth} from './auth.mjs';
 import {createBoardService} from './core.mjs';
 import {createHandler} from './handler.mjs';
-import {createAirtableTestService} from './airtable-test.mjs';
+import {createAirtableReader,createAirtableTestService} from './airtable-test.mjs';
 
 let handler;
 export function productionHandler(){
@@ -20,13 +20,17 @@ export function productionHandler(){
   const db=getFirestore(app);
   const serverTimestamp=()=>FieldValue.serverTimestamp();
   const service=createBoardService({db,ownerUid:cfg.ownerUid,serverTimestamp});
-  const airtableTest=createAirtableTestService({db,ownerUid:cfg.ownerUid,serverTimestamp});
+  const airtable=createAirtableReader({
+    pat:process.env.AIRTABLE_PAT||'',
+    baseId:process.env.AIRTABLE_BASE_ID||'',
+    tableId:process.env.AIRTABLE_TABLE_ID||''
+  });
+  const airtableTest=createAirtableTestService({db,ownerUid:cfg.ownerUid,serverTimestamp,airtable});
   handler=createHandler({
     service,
     authenticate:createOAuth(cfg),
     publicUrl:cfg.publicUrl,
     issuer:cfg.issuer,
-    airtableSecret:process.env.AIRTABLE_SYNC_SECRET||'',
     airtableTest
   });
   return handler;
