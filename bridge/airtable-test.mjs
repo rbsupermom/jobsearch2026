@@ -1,4 +1,3 @@
-import {createHash,timingSafeEqual} from 'node:crypto';
 import {BridgeError} from './core.mjs';
 
 const text=(value,name,max=500)=>{
@@ -8,42 +7,70 @@ const text=(value,name,max=500)=>{
   return v;
 };
 
-export function verifyAirtableSecret(provided,expected){
-  if(!expected)throw new BridgeError(503,'Airtable bridge is not configured.');
-  if(typeof provided!=='string'||!provided)throw new BridgeError(401,'Airtable authentication required.');
-  const digest=v=>createHash('sha256').update(v).digest();
-  if(!timingSafeEqual(digest(provided),digest(expected)))throw new BridgeError(401,'Airtable authentication failed.');
+function configText(value,name){
+  if(typeof value!=='string'||!value.trim())throw new BridgeError(503,`${name} is not configured.`);
+  return value.trim();
 }
 
-export function parseAirtableTest(input){
-  if(!input||typeof input!=='object'||Array.isArray(input))throw new BridgeError(400,'Invalid Airtable test payload.');
-  const allowed=new Set(['recordId','jobId','company','role']);
-  if(Object.keys(input).some(k=>!allowed.has(k)))throw new BridgeError(400,'Unknown Airtable test field.');
+export function parseAirtableTestRecord(record){
+  if(!record||typeof record!=='object'||Array.isArray(record))throw new BridgeError(502,'Invalid Airtable record response.');
+  const fields=record.fields;
+  if(!fields||typeof fields!=='object'||Array.isArray(fields))throw new BridgeError(502,'Invalid Airtable fields response.');
   const value={
-    recordId:text(input.recordId,'recordId',100),
-    jobId:text(input.jobId,'jobId',100),
-    company:text(input.company,'company'),
-    role:text(input.role,'role')
+    recordId:text(record.id,'recordId',100),
+    jobId:text(fields['Job ID'],'Job ID',100),
+    company:text(fields.Company,'Company'),
+    role:text(fields.Role,'Role')
   };
-  if(value.jobId!=='TEST-001')throw new BridgeError(400,'Only TEST-001 is accepted by the isolated test route.');
+  if(value.jobId!=='TEST-001')throw new BridgeError(502,'Airtable pilot returned a record other than TEST-001.');
   return value;
 }
 
-export function createAirtableTestService({db,ownerUid,serverTimestamp}){
+export function createAirtableReader({fetchImpl=globalThis.fetch,pat='',baseId='',tableId=''}){
+  return {
+    async fetchTest001(){
+      const token=configText(pat,'AIRTABLE_PAT');
+      const base=configText(baseId,'AIRTABLE_BASE_ID');
+      const table=configText(tableId,'AIRTABLE_TABLE_ID');
+      if(typeof fetchImpl!=='function')throw new BridgeError(503,'Airtable HTTP client is unavailable.');
+      const formula=encodeURIComponent(`{Job ID}='TEST-001'`);
+      const url=`https://api.airtable.com/v0/${encodeURIComponent(base)}/${encodeURIComponent(table)}?maxRecords=2&filterByFormula=${formula}`;
+      let response;
+      try{
+        response=await fetchImpl(url,{headers:{Authorization:`Bearer ${token}`,Accept:'application/json'}});
+      }catch{
+        throw new BridgeError(502,'Airtable test read failed.');
+      }
+      if(!response||!response.ok)throw new BridgeError(502,'Airtable test read failed.');
+      let body;
+      try{body=await response.json();}catch{throw new BridgeError(502,'Airtable returned invalid JSON.');}
+      if(!body||!Array.isArray(body.records)||body.records.length!==1)
+        throw new BridgeError(502,'Airtable TEST-001 lookup did not return exactly one record.');
+      return parseAirtableTestRecord(body.records[0]);
+    }
+  };
+}
+
+export function createAirtableTestService({db,ownerUid,serverTimestamp,airtable}){
   if(!ownerUid||ownerUid.includes('/'))throw Error('Set the one board owner UID on the server.');
   const ref=db.doc(`users/${ownerUid}/integrations/airtable`);
+  const record=async value=>{
+    if(!value||value.jobId!=='TEST-001')throw new BridgeError(400,'Only TEST-001 is accepted by the isolated test service.');
+    await ref.set({
+      source:'airtable',
+      jobId:value.jobId,
+      airtableRecordId:value.recordId,
+      company:value.company,
+      role:value.role,
+      receivedAt:serverTimestamp()
+    },{merge:true});
+    return {ok:true,jobId:value.jobId};
+  };
   return {
-    async record(input){
-      const value=parseAirtableTest(input);
-      await ref.set({
-        source:'airtable',
-        jobId:value.jobId,
-        airtableRecordId:value.recordId,
-        company:value.company,
-        role:value.role,
-        receivedAt:serverTimestamp()
-      },{merge:true});
-      return {ok:true,jobId:value.jobId,recordId:value.recordId};
+    record,
+    async pull(){
+      if(!airtable||typeof airtable.fetchTest001!=='function')throw new BridgeError(503,'Airtable bridge is not configured.');
+      return record(await airtable.fetchTest001());
     }
   };
 }
