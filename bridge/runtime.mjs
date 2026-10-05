@@ -3,6 +3,7 @@ import {getFirestore,FieldValue} from 'firebase-admin/firestore';
 import {configFromEnv,createOAuth} from './auth.mjs';
 import {createBoardService} from './core.mjs';
 import {createHandler} from './handler.mjs';
+import {createAirtableReader,createAirtableTestService} from './airtable-test.mjs';
 
 let handler;
 export function productionHandler(){
@@ -16,7 +17,21 @@ export function productionHandler(){
     credential=cert(account);
   }
   const app=initializeApp({projectId:'job-search-command-board',credential});
-  const service=createBoardService({db:getFirestore(app),ownerUid:cfg.ownerUid,serverTimestamp:()=>FieldValue.serverTimestamp()});
-  handler=createHandler({service,authenticate:createOAuth(cfg),publicUrl:cfg.publicUrl,issuer:cfg.issuer});
+  const db=getFirestore(app);
+  const serverTimestamp=()=>FieldValue.serverTimestamp();
+  const service=createBoardService({db,ownerUid:cfg.ownerUid,serverTimestamp});
+  const airtable=createAirtableReader({
+    pat:process.env.AIRTABLE_PAT||'',
+    baseId:process.env.AIRTABLE_BASE_ID||'',
+    tableId:process.env.AIRTABLE_TABLE_ID||''
+  });
+  const airtableTest=createAirtableTestService({db,ownerUid:cfg.ownerUid,serverTimestamp,airtable});
+  handler=createHandler({
+    service,
+    authenticate:createOAuth(cfg),
+    publicUrl:cfg.publicUrl,
+    issuer:cfg.issuer,
+    airtableTest
+  });
   return handler;
 }
