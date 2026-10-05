@@ -1,7 +1,6 @@
 import {McpServer} from '@modelcontextprotocol/sdk/server/mcp.js';
 import {StreamableHTTPServerTransport} from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import {BridgeError,packetSchema} from './core.mjs';
-import {verifyAirtableSecret} from './airtable-test.mjs';
 
 const json=(res,status,value)=>{res.statusCode=status;res.setHeader('Content-Type','application/json');res.end(JSON.stringify(value));};
 const result=value=>({content:[{type:'text',text:JSON.stringify(value)}]});
@@ -31,23 +30,22 @@ function mcp(service,actor){
   }
   return server;
 }
-export function createHandler({service,authenticate,publicUrl,issuer,airtableSecret='',airtableTest}){
+export function createHandler({service,authenticate,publicUrl,issuer,airtableTest}){
   return async(req,res)=>{
     res.setHeader('Cache-Control','no-store');res.setHeader('X-Content-Type-Options','nosniff');
     const path=new URL(req.url,'http://localhost').pathname;
     const metadata=publicUrl+'/.well-known/oauth-protected-resource/mcp';
     try{
-      // Reject browser-origin requests. MCP clients and Airtable automation use server-to-server HTTP.
+      // Reject browser-origin requests. MCP clients and the isolated server-side Airtable pilot use server-to-server HTTP.
       if(req.headers.origin)throw new BridgeError(403,'Browser-origin access is disabled.');
       if(req.method==='GET'&&['/.well-known/oauth-protected-resource','/.well-known/oauth-protected-resource/mcp'].includes(path))
         return json(res,200,{resource:publicUrl+'/mcp',authorization_servers:[issuer],scopes_supported:['board:read','board:merge'],bearer_methods_supported:['header']});
       if(req.method==='GET'&&path==='/health')return json(res,200,{ok:true,version:'0.1.0'});
-      if(path==='/airtable-test'){
-        if(req.method!=='POST'){res.setHeader('Allow','POST');return json(res,405,{error:'Use POST for Airtable test sync.'});}
-        verifyAirtableSecret(req.headers['x-airtable-sync-secret'],airtableSecret);
+      if(path==='/airtable-test-pull'){
+        res.setHeader('X-Robots-Tag','noindex, nofollow');
+        if(req.method!=='GET'){res.setHeader('Allow','GET');return json(res,405,{error:'Use GET for the isolated Airtable pilot.'});}
         if(!airtableTest)throw new BridgeError(503,'Airtable bridge is not configured.');
-        if(!/^application\/json(?:;|$)/i.test(req.headers['content-type']||''))throw new BridgeError(415,'Use application/json.');
-        return json(res,200,await airtableTest.record(await readJsonBody(req,16000)));
+        return json(res,200,await airtableTest.pull());
       }
       if(path!=='/mcp')return json(res,404,{error:'Not found'});
       const actor=await authenticate(req.headers.authorization);
