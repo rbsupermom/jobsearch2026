@@ -12,6 +12,16 @@ function configText(value,name){
   return value.trim();
 }
 
+function airtableHttpError(response){
+  const status=Number(response?.status)||0;
+  if(status===401)return new BridgeError(502,'Airtable authentication rejected the stored token.');
+  if(status===403)return new BridgeError(502,'Airtable rejected access to the configured base or table.');
+  if(status===404)return new BridgeError(502,'Airtable could not find the configured base or table.');
+  if(status===422)return new BridgeError(502,'Airtable rejected the TEST-001 query.');
+  if(status===429)return new BridgeError(502,'Airtable rate-limited the test request.');
+  return new BridgeError(502,status?`Airtable API request failed with status ${status}.`:'Airtable API request failed before a status was returned.');
+}
+
 export function parseAirtableTestRecord(record){
   if(!record||typeof record!=='object'||Array.isArray(record))throw new BridgeError(502,'Invalid Airtable record response.');
   const fields=record.fields;
@@ -39,13 +49,14 @@ export function createAirtableReader({fetchImpl=globalThis.fetch,pat='',baseId='
       try{
         response=await fetchImpl(url,{headers:{Authorization:`Bearer ${token}`,Accept:'application/json'}});
       }catch{
-        throw new BridgeError(502,'Airtable test read failed.');
+        throw new BridgeError(502,'Airtable request could not reach the API.');
       }
-      if(!response||!response.ok)throw new BridgeError(502,'Airtable test read failed.');
+      if(!response||!response.ok)throw airtableHttpError(response);
       let body;
       try{body=await response.json();}catch{throw new BridgeError(502,'Airtable returned invalid JSON.');}
-      if(!body||!Array.isArray(body.records)||body.records.length!==1)
-        throw new BridgeError(502,'Airtable TEST-001 lookup did not return exactly one record.');
+      if(!body||!Array.isArray(body.records))throw new BridgeError(502,'Airtable response did not include a records array.');
+      if(body.records.length===0)throw new BridgeError(502,'Airtable TEST-001 lookup returned no records.');
+      if(body.records.length>1)throw new BridgeError(502,'Airtable TEST-001 lookup returned more than one record.');
       return parseAirtableTestRecord(body.records[0]);
     }
   };
